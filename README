@@ -1,0 +1,132 @@
+------- ALGORITMI PARALELI SI DISTRIBUITI -------
+----------- TEMA 2. Traffic simulator -----------
+
+APD
+
+Cuprins:
+	1. Task-uri 
+		1.01. Task-ul "simple_semaphore"
+		1.02. Task-ul "simple_n_roundabout"
+		1.03. Task-ul "simple_strict_1_car_roundabout"
+		1.04. Task-ul "simple_strict_x_car_roundabout"
+		1.05. Task-ul "simple_max_x_car_roundabout"
+		1.06. Task-ul "priority_intersection"
+		1.07. Task-ul "crosswalk"
+		1.08. Task-ul "simple_maintenance"
+		1.09. Task-ul "complex_maintenance"
+		1.10. Task-ul "railroad"
+	3. Alte detalii
+
+
+1.01. Task-ul "simple_semaphore"
+	Implementarea acestui task presupune doar punerea thread-ului in sleep,
+	pe o perioada aferenta fiecarei masini. Masina ajunge la semafor
+	inainte de sleep, si incepe sa conduca dupa acesta.
+
+1.02. Task-ul "simple_n_roundabout"
+	In sensul giratoriu sunt permise maximum n masini la un moment dat. Prin
+	urmare, sunt permise maximum n thread-uri in zona critica la un moment dat,
+	caz ideal pentru structura de sincronizare Semaphore, initializat cu
+	n permits.
+
+1.03. Task-ul "simple_strict_1_car_roundabout"
+	Pentru N benzi, sunt necesare doua conditii ca o grupa de 1xN masini sa
+	intre in sensul giratoriu:
+		* Numarul exact de masini de pe fiecare banda este 1
+			Situatie pentru un semafor cu 1 permit (mutex)
+		* Fiecare banda trebuie sa aiba numarul exact de masini aferent
+			Situatie pentru bariera
+
+	In concluzie, folosim cate un semafor pentru fiecare banda. Cand o masina
+	ajunge pe banda X, se consuma un permit de la semaforul X. Se asteapta toate
+	cele 1xN masini sa ajunga la bariera, dupa care ele pot intra in sensul
+	giratoriu (sleep).
+
+	Se observa ca daca pe o banda nu mai exista permits, nu se poate ajunge
+	la bariera.
+
+	Dupa ce au iesit, semafoarele pot fi eliberate
+
+1.04. Task-ul "simple_strict_x_car_roundabout"
+	Pentru N benzi, sunt necesare doua conditii ca o grupa de MxN masini sa
+	intre in sensul giratoriu:
+		* Numarul exact de masini de pe fiecare banda este M
+			Situatie pentru un semafor cu M permits
+		* Fiecare banda trebuie sa aiba numarul exact de masini aferent
+			Situatie pentru bariera
+
+	In concluzie, folosim cate un semafor pentru fiecare banda. Cand o masina
+	ajunge pe banda X, se consuma un permit de la semaforul X. Se asteapta toate
+	cele MxN masini sa ajunga la bariera, dupa care ele pot intra in sensul
+	giratoriu (sleep).
+
+	Se observa ca daca pe o banda nu mai exista permits, nu se poate ajunge
+	la bariera.
+
+	Dupa ce au iesit, semafoarele pot fi eliberate
+
+1.05. Task-ul "simple_max_x_car_roundabout"
+	Implementarea presupune doar ca in sensul giratoriu sa nu existe mai mult
+	de N masini de pe aceeasi banda, din M benzi. Folosim o lista de M semafoare
+	cu N permits.
+
+	Un permit este retinut de o masina cat timp aceasta a intrat si inca se
+	afla in sensul giratoriu (acquire + sleep)
+
+1.06. Task-ul "priority_intersection"
+	In functie de prioritate, se deosebesc doua flow-uri:
+		* Pentru prioritate mica, avem un semafor cu 1 permit, care astfel
+		permite intrarea unei singure masini de prioritate mica in intersectie.
+		Acest semafor poate fi modificat si de masinile cu prioritate mare
+		(vezi mai jos)
+
+		* Pentru prioritate mare, exista un semafor pentru masini cu prioritate
+		mare, care are tot 1 permit. Acesta este folosit pentru calculele
+		semaforului pentru prioritate mica, astfel incat sa nu fie modificat
+		de alte masini cu prioritate mare in acelasi timp. Daca aceasta este
+		prima masina cu prioritate mare din intersectie, interzice intrarea
+		masinilor cu prioritate mica setand semaforul lor la 0. Dupa ce
+		aceasta masina a parasit intersectia, daca a fost ultima masina
+		cu prioritate mare, permite din nou masinilor cu prioritate mica sa
+		intre in intersectie, setand semaforul lor la 1.
+
+1.07. Task-ul "crosswalk"
+	Cat timp executia nu s-a terminat, se verifica daca pietonii sunt in
+	trecere. In caz afirmativ, masina se opreste la stop, si asteapta semnalul
+	(notify) verde de la Pedestrians. Daca ultimul semnal primit de masini
+	nu a fost verde, acesta va fi pe viitor, deci afisam mesajul aferent.
+
+1.08. Task-ul "simple_maintenance"
+	Folosim o metoda "cocktail shaker" intre 2 semafoare. Cand scoatem
+	dintr-un semafor cate un permit, il punem in celalalt semafor. Astfel,
+	avem un semafor initializat cu numarul de masini dintr-o grupa pentru
+	primul sens de mers (prioritar), si un semafor initializat cu 0 pentru
+	celalalt sens. Cand unul se umple, celalalt se goleste. Totodata, se
+	folsoeste o bariera pentru a astepta toate masinile sa ajunga la
+	bottleneck, si inca una pentru a ne asigura ca s-au transferat
+	toate permit-urile intre semafoare
+
+1.09. Task-ul "complex_maintenance"
+	Asteptam ca fiecare masina sa ajunga la bottleneck, printr-o bariera
+
+	Urmeaza sa trecem, pana cand nu mai raman masini, prin fiecare banda
+	noua, prin fiecare banda veche, executand, daca este necesar, operatiile
+	precizate in cerinta (in cazul in care ramane o coada veche goala,
+	sau nu mai sunt permits).
+
+
+1.10. Task-ul "railroad"
+	Asteptam printr-o bariera ca toate masinile sa ajunga la calea ferata.
+	Acestea se strang intr-un queue. Ulterior, dupa ce trenul trece,
+	fiecare thread asteapta sa se gaseasca pe prima pozitie din queue.
+	Cand se intampla asta, isi executa codul aferent (mesajele) si se
+	scoate din queue. Astfel se pastreaza ordinea initiala si fiecare
+	thread raspunde doar de el insusi. Asteptarea pozitiei in queue pentru
+	poll se face printr-un wait, care este notificat de un thread care
+	s-a gasit in queue (mereu trebuie sa se gaseasca unul)
+
+
+=== =============== ===
+=== 4. Alte detalii ===
+=== =============== ===
+	none
